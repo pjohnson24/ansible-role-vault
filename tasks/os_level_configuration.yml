@@ -5,6 +5,10 @@
     system: true
   when: vault_create_account
 
+- name: Pause for 30 seconds
+  pause:
+    seconds: 30
+
 - name: Creating Vault user
   ansible.builtin.user:
     name: '{{ vault_user }}'
