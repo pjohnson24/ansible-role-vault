@@ -45,3 +45,10 @@
     group: '{{ vault_group }}'
     mode: '0750'
   when: vault_enable_plugins
+
+- name: Stop and disable firewalld
+  ansible.builtin.service:
+    name: firewalld
+    enabled: false
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'
+  ignore_errors: true

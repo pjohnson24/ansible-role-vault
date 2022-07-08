@@ -74,23 +74,27 @@ Ansible variables are listed below, along with default values (see `defaults/mai
 
 ### `vault_version`
 - Version of Vault to install
-- Default value: `1.9.1`
+- Default value: `1.10.0`
 
 ### `vault_archive`
 - Name of the Vault file archive to download
-- Default value: `vault_1.9.1_linux_amd64.zip`
+- Default value: `vault_1.10.0_linux_amd64.zip`
 
 ### `vault_download`
 - Full remote URL location to the vault archive
-- Default value: `https://releases.hashicorp.com/vault/1.9.1/vault_1.9.1_linux_amd64.zip`
+- Default value: `https://releases.hashicorp.com/vault/1.10.0/vault_1.10.0_linux_amd64.zip`
 
 ### `vault_local_binary_location`
-- If set, Ansible will locally look for the Vault binary at the specified path 
+- If set, Ansible will locally look for the Vault binary at the specified path
 - No default value
 
+### `vault_license_string`
+- If set, Ansible will create a license file using this value for the file content
+- No default value. A license is **required** for Vault versions >= 1.8.0 when installing enterprise, so **you have to provide** either `vault_license_string` or `vault_license_file`
+
 ### `vault_license_file`
-- If set, Ansible will locally look for a Vault license at the specifed path
-- No default value. This is **required** for Vault versions >= 1.8.0 when installing enterprise
+- If set, Ansible will locally look for a Vault license at the specified path
+- No default value. A license is **required** for Vault versions >= 1.8.0 when installing enterprise, so **you have to provide** either `vault_license_string` or `vault_license_file`
 
 ### `vault_client_addr`
 - The address to which Vault will bind client interfaces
@@ -99,6 +103,10 @@ Ansible variables are listed below, along with default values (see `defaults/mai
 ### `vault_api_port`
 - Vault API port
 - Default value: `8200`
+
+### `vault_cluster_name`
+- The name of the Vault cluster
+- Default value: none
 
 ### `vault_cluster_port`
 - Vault cluster port
@@ -121,6 +129,10 @@ Ansible variables are listed below, along with default values (see `defaults/mai
 - Specifies telemetry configuration to Vault. Refer to [this](https://www.vaultproject.io/docs/configuration/telemetry#telemetry-parameters) document for available parameters. Each parameter can be passed as a key to this dictionary
 - No default value
 
+### `service_registration`
+- Specifies service registrtation configuration for Vault. Refer to [this](https://www.vaultproject.io/docs/configuration/service-registration) document for available parameters. Each parameter can be passed as a key to this dictionary
+- No default value
+
 ### `vault_seal`
 - A dictionary defining the seal type to use for Vault. Refer to [this](https://www.vaultproject.io/docs/configuration/seal) document for the required parameters to pass as keys if using a cloud KMS solution.
 - Type: `dictionary`
@@ -131,15 +143,31 @@ Ansible variables are listed below, along with default values (see `defaults/mai
 - Default value: true
 
 ### `vault_tls_ca_cert_file`
-- If set, Ansible will locally look for a TLS CA certificate at the specified path to copy to each Vault server
+- If set, Ansible will locally look for a TLS CA certificate at the specified path to copy to each Vault server. Mutually exclusive with `vault_tls_ca_cert_string`
+- No default value
+
+### `vault_tls_ca_cert_string`
+- If set, Ansible will Ansible will create the TLS CA file using this value for the file content. Mutually exclusive with `vault_tls_ca_cert_file`
 - No default value
 
 ### `vault_tls_cert_file`
-- If set, Ansible will locally look for a signed TLS certificate at the specified path to copy to each Vault server
+- If set, Ansible will locally look for a TLS certificate at the specified path to copy to each Vault server. Mutually exclusive with `vault_tls_cert_string`
+- No default value
+
+### `vault_tls_cert_string`
+- If set, Ansible will Ansible will create the TLS certificate using this value for the file content. Mutually exclusive with `vault_tls_cert_file`
 - No default value
 
 ### `vault_tls_key_file`
-- If set, Ansible will locally look for a TLS key at the specified path to copy to each Vault server
+- If set, Ansible will locally look for a TLS key at the specified path to copy to each Vault server. Mutually exclusive with `vault_tls_key_string`
+- No default value
+
+### `vault_tls_key_string`
+- If set, Ansible will Ansible will create the TLS key using this value for the file content. Mutually exclusive with `vault_tls_cert_file`
+- No default value
+
+### `vault_leader_tls_servername`
+- If Set, Vault will use this TLS server name when connecting with HTTPS. Uses the server's hostname if not set.
 - No default value
 
 ### `consul_http_port`
@@ -171,7 +199,7 @@ Ansible variables are listed below, along with default values (see `defaults/mai
 - No default value
 
 ### `consul_tls_skip_verify`
-- If true, Vault will skip verification of the certificae presented by Consul
+- If true, Vault will skip verification of the certificate presented by Consul
 - Default value: `false`
 
 ### `consul_vault_kv_path`
@@ -251,7 +279,7 @@ $ mkdir group_vars
 $ cat <<EOF > vault_primary.yml
 ---
 vault_storage_backend: 'integrated'
-vault_version: '1.9.0+ent'
+vault_version: '1.10.0+ent'
 
 vault_tls_ca_cert_file: 'tls/consul-agent-ca.pem'
 vault_tls_cert_file: 'tls/dc1-server-consul-0.pem'

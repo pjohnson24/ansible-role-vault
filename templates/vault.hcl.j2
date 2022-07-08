@@ -1,14 +1,23 @@
+{% if vault_cluster_name is defined %}
+cluster_name = "{{ vault_cluster_name }}"
+{% endif %}
+
 listener "tcp" {
-{% if vault_tls_cert_file is defined and vault_tls_key_file is defined %}
+{% if (vault_tls_cert_file is defined or vault_tls_cert_string is defined) and (vault_tls_key_file is defined or vault_tls_key_string is defined) %}
 {% set proto="https" %}
   address                  = "{{ vault_client_addr }}:{{ vault_api_port }}"
-  tls_cert_file            = "{{ vault_tls_directory }}/{{ vault_tls_cert_file | basename }}"
-  tls_key_file             = "{{ vault_tls_directory }}/{{ vault_tls_key_file  | basename }}"
+  tls_cert_file            = "{{ vault_tls_directory }}/vault.crt"
+  tls_key_file             = "{{ vault_tls_directory }}/vault.key"
   tls_disable_client_certs = {{ vault_tls_disable_client_certs | lower }}
 {% else %}
 {% set proto="http" %}
   address     = "{{ vault_client_addr }}:{{ vault_api_port }}"
   tls_disable = true
+{% endif %}
+{% if vault_unauthenticated_metrics_access %}
+  telemetry {
+    unauthenticated_metrics_access = true
+  }
 {% endif %}
 }
 
@@ -23,13 +32,14 @@ storage "raft" {
   retry_join {
     leader_api_addr         = "{{ proto }}://{{ hostvars[vault_server]['ansible_fqdn'] }}:{{ vault_api_port }}"
 {% if proto == "https" %}
-{% if vault_tls_ca_cert_file is defined %}
-    leader_ca_cert_file     = "{{ vault_tls_directory }}/{{ vault_tls_ca_cert_file | basename }}"
+{% if vault_tls_ca_cert_file is defined or vault_tls_ca_cert_string is defined %}
+    leader_ca_cert_file     = "{{ vault_tls_directory }}/ca.crt"
 {% endif %}
 {% if not vault_tls_disable_client_certs %}
-    leader_client_cert_file = "{{ vault_tls_directory }}/{{ vault_tls_cert_file | basename }}"
-    leader_client_key_file  = "{{ vault_tls_directory }}/{{ vault_tls_key_file  | basename }}"
+    leader_client_cert_file = "{{ vault_tls_directory }}/vault.crt"
+    leader_client_key_file  = "{{ vault_tls_directory }}/vault.key"
 {% endif %}
+    leader_tls_servername   = "{{ vault_leader_tls_servername | default(ansible_fqdn) }}"
 {% endif %}
   }
 {% endfor %}
@@ -43,10 +53,10 @@ storage "raft" {
     auto_join             = "provider=aws tag_key={{ cloud.aws_tag_key }} tag_value={{ cloud.aws_tag_value }}"
 {% endif %}
     auto_join_scheme      = "https"
-{% if vault_tls_ca_cert_file is defined %}
-    leader_ca_cert_file   = "{{ vault_tls_directory }}/{{ vault_tls_ca_cert_file | basename }}"
+{% if vault_tls_ca_cert_file is defined or vault_tls_ca_cert_string is defined %}
+    leader_ca_cert_file   = "{{ vault_tls_directory }}/ca.crt"
 {% endif %}
-    leader_tls_servername = "{{ ansible_fqdn }}"
+    leader_tls_servername = "{{ vault_leader_tls_servername | default(ansible_fqdn) }}"
   }
 {% endif %}
 }
@@ -81,20 +91,32 @@ seal "{{ vault_seal.type }}" {
 {% endfor %}
 }
 
-{% if vault_telemetry is defined %}
-telemetry {
-{% for item in vault_telemetry %}
-  {{ item }} = {{ vault_telemetry[item] }}
-{% endfor %}
-}
-{% endif %}
+ {% if vault_telemetry is defined %}
+ telemetry {
+ {% for item in vault_telemetry %}
+ {% if (vault_telemetry[item] == True or vault_telemetry[item] == False) %}
+   {{ item }} = {{ vault_telemetry[item] | bool | lower }}
+ {% else %}
+   {{ item }} = "{{ vault_telemetry[item] }}"
+ {% endif %}
+ {% endfor %}
+ }
+ {% endif %}
 
 {% if vault_enable_plugins %}
 plugin_directory = "{{ vault_plugin_directory }}"
 {% endif %}
 
-{% if vault_license_file is defined %}
-license_path = "{{ vault_license_directory }}/{{ vault_license_file | basename }}"
+{% if vault_license_file is defined or vault_license_string is defined %}
+license_path = "{{ vault_license_directory }}/vault.hclic"
+{% endif %}
+
+{% if service_registration is defined %}
+service_registration "{{ service_registration.name }}" {
+{% for item in service_registration if not item == "name" %}
+  {{ item }} = "{{ service_registration[item] }}"
+{% endfor %}
+}
 {% endif %}
 
 api_addr      = "{{ proto }}://{{ ansible_fqdn }}:{{ vault_api_port }}"
